@@ -1,0 +1,134 @@
+-----------------------------------------------------------HADOOP OPERATIONS-----------------------------------------------------------------------
+Notebook-PC:~/hadoop-project-area$cd $HADOOP_HOME/sbin
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$./hadoop-daemon.sh start namenode                 //Command to start namenode
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$./hadoop-daemon.sh start datanode                 //Command to start datanode
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$./yarn-daemon.sh start nodemanager                //Command to start nodemanager
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$./yarn-daemon.sh start resourcemanager            //Command to start resourcemanager
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$./mr-jobhistory-daemon.sh start historyserver     //Command to start historyserver
+
+Notebook-PC:~/hadoop-project-area$jps  //Command to check every hadoop daemons are running or not 
+673 Jps
+18498 JobHistoryServer
+18663 RunJar
+18106 NodeManager
+18235 ResourceManager
+17916 NameNode
+17983 DataNode
+
+//Command to create a directory for all project related work
+$Notebook-PC:~/hadoop-project-area$hadoop dfs -mkdir /project                        
+
+Notebook-PC:~/home/netstorm/hadoop-2.2.0/sbin$ cd ../../hadoop-project-area
+Notebook-PC:~/home/netstorm/hadoop-project-area$
+
+//Loading Local files to HDFS
+$Notebook-PC:~/hadoop-project-area$hadoop dfs -put /home/hadoop/hadoop-project-area/airports_mod.dat /project
+$Notebook-PC:~/hadoop-project-area$hadoop dfs -put /home/hadoop/hadoop-project-area/Final_airlines /project
+$Notebook-PC:~/hadoop-project-area$hadoop dfs -put /home/hadoop/hadoop-project-area/routes.dat /project
+
+//Listng project directory inside HDFS cluster
+$Notebook-PC:~/hadoop-project-area$hadoop dfs -ls /project
+
+//Invoking pig shell in HDFS mode
+$Notebook-PC:~/hadoop-project-area$ pig
+
+-------------------------------------------------------------PROBLEM STATEMNT A -------------------------------------------------------------------
+
+//Loading airports_mod.dat dataset from HDFS as a pig alias
+grunt>airports = load '/project/airports_mod.dat' using PigStorage(',') as( id1:int, name:chararray, city:chararray, country:chararray, IFCode:chararray, ICCode:chararray, latd:double, longtd:double, altd:double, timeZone:chararray, dls:chararray, databaseTimeZone:chararray);																																																																																																																																																											 
+
+//Loading Final_airlines dataset from HDFS as a pig alias
+grunt>airlines = load '/project/Final_airlines' using PigStorage(',') as (id2:int, al_name:chararray, alias:chararray, IFCode:chararray, ICCode:chararray, al_sign:chararray, country:chararray, status:chararray);
+
+//Loading routes.dat dataset from HDFS as a pig alias
+grunt>routes = load '/project/routes.dat' using PigStorage (',') as (ICode:chararray, id3:int, sAirport:chararray, sId:int, dAirport:chararray, dId:int, codeShare:chararray, stopsCount:int, equipment:chararray);
+
+grunt>result1 = filter airports by country matches 'India';
+grunt>IndianAirportNames = distinct  result1;
+grunt>dump IndianAirportNames;
+grunt>AirportNames = foreach IndianAirportNames generate name;
+grunt>store AirportNames into '/project/result1' using PigStorage (',');
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																	
+-------------------------------------------------------------PROBLEM STATEMNT B -------------------------------------------------------------------
+
+//Loading airports_mod.dat dataset from HDFS as a pig alias
+grunt>airports = load '/project/airports_mod.dat' using PigStorage(',') as( id1:int, name:chararray, city:chararray, country:chararray, IFCode:chararray, ICCode:chararray, latd:double, longtd:double, altd:double, timeZone:chararray, dls:chararray, databaseTimeZone:chararray);																																																																																																																																																											 
+
+//Loading Final_airlines dataset from HDFS as a pig alias
+grunt>airlines = load '/project/Final_airlines' using PigStorage(',') as (id2:int, al_name:chararray, alias:chararray, IFCode:chararray, ICCode:chararray, al_sign:chararray, country:chararray, status:chararray);
+
+//Loading routes.dat dataset from HDFS as a pig alias
+grunt>routes = load '/project/routes.dat' using PigStorage (',') as (ICode:chararray, id3:int, sAirport:chararray, sId:int, dAirport:chararray, dId:int, codeShare:chararray, stopsCount:int, equipment:chararray);
+
+grunt>IdAndName = foreach airlines generate id2, al_name;
+grunt>IdAndStopsCount = foreach routes generate id3, stopsCount;
+grunt>MergeData = join IdAndStopsCount by id3, IdAndName by id2;
+grunt>ZeroStopAirlineNames = filter MergeData by stopsCount == 0;
+grunt>AirlinesWithoutStop = foreach ZeroStopAirlineNames generate al_name;
+grunt>DistinctZeroStopAirlines = distinct AirlinesWithoutStop;
+grunt>store DistinctZeroStopAirlines into '/project/result2' using PigStorage (',');
+
+
+-------------------------------------------------------------PROBLEM STATEMNT C -------------------------------------------------------------------
+//Loading airports_mod.dat dataset from HDFS as a pig alias
+grunt>airports = load '/project/airports_mod.dat' using PigStorage(',') as( id1:int, name:chararray, city:chararray, country:chararray, IFCode:chararray, ICCode:chararray, latd:double, longtd:double, altd:double, timeZone:chararray, dls:chararray, databaseTimeZone:chararray);																																																																																																																																																											 
+
+//Loading Final_airlines dataset from HDFS as a pig alias
+grunt>airlines = load '/project/Final_airlines' using PigStorage(',') as (id2:int, al_name:chararray, alias:chararray, IFCode:chararray, ICCode:chararray, al_sign:chararray, country:chararray, status:chararray);
+
+//Loading routes.dat dataset from HDFS as a pig alias
+grunt>routes = load '/project/routes.dat' using PigStorage (',') as (ICode:chararray, id3:int, sAirport:chararray, sId:int, dAirport:chararray, dId:int, codeShare:chararray, stopsCount:int, equipment:chararray);
+
+
+grunt>IdAndAlName = foreach airlines generate id2, al_name;
+grunt>IdAndCodeshare = foreach routes generate id3, codeShare;
+grunt>MergeData = join IdAndAlName by id2, IdAndCodeshare by id3;
+grunt>WithCodeshare = filter MergeData by codeShare matches 'Y';
+grunt>AirlinesCodeShare = foreach WithCodeshare generate al_name;
+grunt>DistinctCodeShareAirlines = distinct AirlinesCodeshare;
+grunt>dump DistinctCodeShareAirlines;
+grunt>store DistinctCodeShareAirlines into '/project/result3' using PigStorage(',');
+
+--------------------------------------------------------------PROBLEM STATEMNT D-------------------------------------------------------------------
+
+//Loading airports_mod.dat dataset from HDFS as a pig alia
+grunt>airports = load '/project/airports_mod.dat' using PigStorage(',') as( id1:int, name:chararray, city:chararray, country:chararray, IFCode:chararray, ICCode:chararray, latd:double, longtd:double, altd:double, timeZone:chararray, dls:chararray, databaseTimeZone:chararray);																																																																																																																																																											 
+
+//Loading Final_airlines dataset from HDFS as a pig alias
+grunt>airlines = load '/project/Final_airlines' using PigStorage(',') as (id2:int, al_name:chararray, alias:chararray, IFCode:chararray, ICCode:chararray, al_sign:chararray, country:chararray, status:chararray);
+
+//Loading routes.dat dataset from HDFS as a pig alias
+grunt>routes = load '/project/routes.dat' using PigStorage (',') as (ICode:chararray, id3:int, sAirport:chararray, sId:int, dAirport:chararray, dId:int, codeShare:chararray, stopsCount:int, equipment:chararray);
+
+grunt>NameAndCountry = foreach airports generate name, country;
+grunt>GroupByCountry = group NameAndCountry by country;
+grunt>count = foreach GroupByCountry generate group, COUNT(NameAndCountry);
+grunt>B = order count by $1 DESC;
+grunt>C = LIMIT B 1;
+grunt>store C into '/project/result4' using PigStorage(',');
+
+-------------------------------------------------------------PROBLEM STATEMNT E-------------------------------------------------------------------
+
+//Loading airports_mod.dat dataset from HDFS as a pig alia
+grunt>airports = load '/project/airports_mod.dat' using PigStorage(',') as( id1:int, name:chararray, city:chararray, country:chararray, IFCode:chararray, ICCode:chararray, latd:double, longtd:double, altd:double, timeZone:chararray, dls:chararray, databaseTimeZone:chararray);																																																																																																																																																											 
+
+//Loading Final_airlines dataset from HDFS as a pig alias
+grunt>airlines = load '/project/Final_airlines' using PigStorage(',') as (id2:int, al_name:chararray, alias:chararray, IFCode:chararray, ICCode:chararray, al_sign:chararray, country:chararray, status:chararray);
+
+//Loading routes.dat dataset from HDFS as a pig alias
+grunt>routes = load '/project/routes.dat' using PigStorage (',') as (ICode:chararray, id3:int, sAirport:chararray, sId:int, dAirport:chararray, dId:int, codeShare:chararray, stopsCount:int, equipment:chararray);
+
+grunt>AlNameAndStatus = foreach airlines generate al_name, country, status;
+grunt>USActiveAirlines = filter AlNameAndStatus by country matches 'United States' and status matches 'Y';
+grunt>DistinctUSActiveAirlines = distinct USActiveAirlines;
+grunt>USActiveAirlinesName = foreach USActiveAirlines generate al_name;
+grunt>store USActiveAirlinesName into '/project/result6' using PigStorage(',');
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+																							
+
+
